@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Настройки{% endblock %}
+{% block content %}
+<h2>Настройки (Администратор)</h2>
+<h4>Создать нового пользователя</h4>
+<form method="POST">
+    <input type="hidden" name="new_user" value="1">
+    <div class="form-group">
+        <label>Имя пользователя</label>
+        <input type="text" name="username" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" name="password" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label>Роль</label>
+        <select name="role" class="form-control">
+            <option value="user">Пользователь</option>
+            <option value="admin">Администратор</option>
+        </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Создать пользователя</button>
+</form>
+<hr>
+<h4>Смена пароля администратора</h4>
+<form method="POST">
+    <input type="hidden" name="change_password" value="1">
+    <div class="form-group">
+        <label>Текущий пароль</label>
+        <input type="password" name="current_password" class="form-control" required>
+    </div>
+    <div class="form-group">
+        <label>Новый пароль</label>
+        <input type="password" name="new_password" class="form-control" required>
+    </div>
+    <button class="btn btn-warning" type="submit">Изменить пароль</button>
+</form>
+<hr>
+<h4>Список пользователей</h4>
+<table class="table table-bordered">
+    <thead class="thead-light">
+        <tr>
+            <th>ID</th>
+            <th>Имя пользователя</th>
+            <th>Роль</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.role }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
