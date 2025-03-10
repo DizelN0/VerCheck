@@ -2,7 +2,6 @@
 {% block title %}Дашборд{% endblock %}
 {% block content %}
 <h2>Дашборд</h2>
-<!-- Кнопка для ручного обновления таблицы Kaspersky -->
 <a href="{{ url_for('update_kaspersky_versions') }}" class="btn btn-warning mb-3">Обновить таблицу Kaspersky</a>
 {% for vendor, products in grouped_products.items() %}
     <h3>{{ vendor }}</h3>

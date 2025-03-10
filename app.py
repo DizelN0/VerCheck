@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 from bs4 import BeautifulSoup
 from apscheduler.schedulers.background import BackgroundScheduler
+from packaging import version
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -16,10 +17,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-login_manager.login_message = ''  # Убираем сообщение "Please log in to access this page."
 
 
-# Модель пользователя
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -31,9 +31,9 @@ class User(UserMixin, db.Model):
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    vendor = db.Column(db.String(100), nullable=False)  # Например, Kaspersky
-    name = db.Column(db.String(100), nullable=False)    # Наименование продукта
-    latest_version = db.Column(db.String(50))             # Глобально последняя версия
+    vendor = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    latest_version = db.Column(db.String(50))
     last_updated = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     error = db.Column(db.String(200))
 
@@ -50,13 +50,13 @@ class Notification(db.Model):
     message = db.Column(db.String(255))
     read = db.Column(db.Boolean, default=False)
 
-# Новая модель для хранения истории версий продукта
+
 class ProductVersion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
     version = db.Column(db.String(50), nullable=False)
-    release_date = db.Column(db.String(50))  # Можно хранить как строку или преобразовать в datetime
-    full_title = db.Column(db.String(200))   # Полное название продукта, если нужно
+    release_date = db.Column(db.String(50))
+    full_title = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 @login_manager.user_loader
@@ -65,7 +65,7 @@ def load_user(user_id):
 
 
 
-# Инициализация БД: создаём таблицы, дефолтного администратора и примеры продуктов
+
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
@@ -86,7 +86,7 @@ with app.app_context():
         db.session.commit()
 
 
-# Функция для получения или создания записи о принятой версии для данного продукта и пользователя
+
 def get_user_product(user_id, product):
     user_prod = UserProduct.query.filter_by(user_id=user_id, product_id=product.id).first()
     if not user_prod:
@@ -101,7 +101,7 @@ def get_user_product(user_id, product):
     return user_prod
 
 
-# Страница входа
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -119,7 +119,6 @@ def login():
     return render_template('login.html')
 
 
-# Выход
 @app.route('/logout')
 @login_required
 def logout():
@@ -128,7 +127,7 @@ def logout():
     return redirect(url_for('login'))
 
 
-# Дашборд: группировка продуктов по вендорам с отображением принятой и глобальной версии
+
 @app.route('/')
 @app.route('/dashboard')
 @login_required
@@ -149,7 +148,6 @@ def dashboard():
     return render_template('dashboard.html', grouped_products=grouped_products, notifications=notifications)
 
 
-# Применение изменений для продукта: обновление принятой версии для текущего пользователя
 @app.route('/apply/<int:product_id>', methods=['POST'])
 @login_required
 def apply_change(product_id):
@@ -165,7 +163,6 @@ def apply_change(product_id):
     return redirect(url_for('dashboard'))
 
 
-# Обновление таблицы Kaspersky через внешний источник: парсинг HTML-таблицы
 @app.route('/notifications/read', methods=['POST'])
 @login_required
 def mark_notifications_read():
@@ -176,6 +173,7 @@ def mark_notifications_read():
     flash("Уведомления отмечены как прочитанные.", "success")
     return redirect(url_for('dashboard'))
 
+
 @app.route('/update_kaspersky')
 @login_required
 def update_kaspersky_versions():
@@ -183,22 +181,28 @@ def update_kaspersky_versions():
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
     }
+
     try:
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            # Выбираем все элементы с версиями из таблицы
             product_blocks = soup.select("div.product-gantt__list-items > div.product-gantt__list-item")
-            updated_versions = []  # Для подсчёта новых версий
+
+            latest_versions = {}  # {product_name: (latest_version, release_date)}
+
             for block in product_blocks:
-                # Извлекаем название и версию из блока
                 title_tag = block.select_one("div.product-gantt__list-item-title")
                 version_tag = block.select_one("div.product-gantt__list-item-version")
+
                 if title_tag and version_tag:
                     product_name = title_tag.get_text(strip=True)
-                    version = version_tag.get_text(strip=True)
+                    product_version = version_tag.get_text(strip=True)
 
-                    # Пытаемся извлечь дату релиза
+                    # Пропускаем, если версия не указана корректно
+                    if product_version in ["—", "", None]:
+                        continue
+
+                    # Извлекаем дату релиза
                     release_date = None
                     info_items = block.select("div.product-gantt__extra-info-item")
                     for item in info_items:
@@ -208,46 +212,62 @@ def update_kaspersky_versions():
                             release_date = value_div.get_text(strip=True)
                             break
 
-                    # Ищем продукт в таблице Product по вендору "Kaspersky" и названию
-                    prod = Product.query.filter_by(vendor="Kaspersky", name=product_name).first()
-                    if not prod:
-                        # Если продукта ещё нет – создаём его
-                        prod = Product(vendor="Kaspersky", name=product_name, latest_version=version)
-                        db.session.add(prod)
-                        db.session.commit()
+                    # Сравниваем версии по тексту, если версия содержит недопустимые символы
+                    if product_name not in latest_versions or product_version > latest_versions[product_name][0]:
+                        latest_versions[product_name] = (product_version, release_date)
 
-                    # Проверяем, есть ли уже такая версия в ProductVersion
-                    existing_version = ProductVersion.query.filter_by(product_id=prod.id, version=version).first()
-                    if not existing_version:
-                        new_version_entry = ProductVersion(
-                            product_id=prod.id,
-                            version=version,
-                            release_date=release_date,
-                            full_title=product_name
-                        )
-                        db.session.add(new_version_entry)
-                        updated_versions.append((prod.vendor, prod.name, version))
+            updated_versions = []
 
-                    # Можно обновить latest_version в Product, если необходимо (например, первая запись считается актуальной)
-                    if not prod.latest_version or prod.latest_version != version:
-                        prod.latest_version = version
+            for product_name, (latest_version, release_date) in latest_versions.items():
+                prod = Product.query.filter_by(vendor="Kaspersky", name=product_name).first()
+                if not prod:
+                    prod = Product(vendor="Kaspersky", name=product_name, latest_version=latest_version)
+                    db.session.add(prod)
+                    db.session.commit()
+
+                # Проверяем, добавлена ли эта версия в базу
+                existing_version = ProductVersion.query.filter_by(product_id=prod.id, version=latest_version).first()
+                if not existing_version:
+                    new_version_entry = ProductVersion(
+                        product_id=prod.id,
+                        version=latest_version,
+                        release_date=release_date,
+                        full_title=product_name
+                    )
+                    db.session.add(new_version_entry)
+                    updated_versions.append((prod.vendor, prod.name, latest_version))
+
+                    # Создаем уведомления
+                    users = User.query.filter_by(notify=True).all()
+                    for user in users:
+                        user_prod = get_user_product(user.id, prod)
+                        if user_prod.accepted_version != latest_version:
+                            message = f"Новая версия для {prod.vendor} {prod.name}: {latest_version}"
+                            notification = Notification(user_id=user.id, message=message)
+                            db.session.add(notification)
+
+                # Обновляем latest_version
+                if not prod.latest_version or prod.latest_version < latest_version:
+                    prod.latest_version = latest_version
+
             db.session.commit()
             if updated_versions:
                 flash('Добавлено новых версий: ' + str(len(updated_versions)), 'success')
-                return redirect(url_for('dashboard'))
             else:
                 flash('Новых версий не обнаружено.', 'info')
-                return redirect(url_for('dashboard'))
+
+            return redirect(url_for('dashboard'))
+
         else:
             flash('Ошибка при получении данных с сайта Kaspersky.', 'danger')
             return redirect(url_for('dashboard'))
+
     except Exception as e:
         flash(f'Ошибка: {str(e)}', 'danger')
         return redirect(url_for('dashboard'))
-# Отметка уведомлений как прочитанных для текущего пользователя
 
 
-# Страница настроек (только для администратора)
+
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
@@ -283,7 +303,7 @@ def settings():
     return render_template('settings.html', users=users)
 
 
-# Страница профиля: редактирование ФИО, профессии и настроек уведомлений
+
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
