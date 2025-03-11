@@ -17,7 +17,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-
+login_manager.login_message = ''
 
 
 class User(UserMixin, db.Model):
@@ -177,7 +177,7 @@ def mark_notifications_read():
 @app.route('/update_kaspersky')
 @login_required
 def update_kaspersky_versions():
-    url = "https://support.kaspersky.ru/corporate/lifecycle?type=limited,full&view=table"
+    url = "http://127.0.0.1:8000/%D0%96%D0%B8%D0%B7%D0%BD%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9%20%D1%86%D0%B8%D0%BA%D0%BB%20%D0%BF%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B9.html?type=limited,full"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
     }
@@ -188,7 +188,7 @@ def update_kaspersky_versions():
             soup = BeautifulSoup(response.text, 'html.parser')
             product_blocks = soup.select("div.product-gantt__list-items > div.product-gantt__list-item")
 
-            latest_versions = {}  # {product_name: (latest_version, release_date)}
+            latest_versions = {}
 
             for block in product_blocks:
                 title_tag = block.select_one("div.product-gantt__list-item-title")
@@ -198,11 +198,9 @@ def update_kaspersky_versions():
                     product_name = title_tag.get_text(strip=True)
                     product_version = version_tag.get_text(strip=True)
 
-                    # Пропускаем, если версия не указана корректно
                     if product_version in ["—", "", None]:
                         continue
 
-                    # Извлекаем дату релиза
                     release_date = None
                     info_items = block.select("div.product-gantt__extra-info-item")
                     for item in info_items:
@@ -212,7 +210,6 @@ def update_kaspersky_versions():
                             release_date = value_div.get_text(strip=True)
                             break
 
-                    # Сравниваем версии по тексту, если версия содержит недопустимые символы
                     if product_name not in latest_versions or product_version > latest_versions[product_name][0]:
                         latest_versions[product_name] = (product_version, release_date)
 
@@ -225,7 +222,6 @@ def update_kaspersky_versions():
                     db.session.add(prod)
                     db.session.commit()
 
-                # Проверяем, добавлена ли эта версия в базу
                 existing_version = ProductVersion.query.filter_by(product_id=prod.id, version=latest_version).first()
                 if not existing_version:
                     new_version_entry = ProductVersion(
@@ -237,7 +233,6 @@ def update_kaspersky_versions():
                     db.session.add(new_version_entry)
                     updated_versions.append((prod.vendor, prod.name, latest_version))
 
-                    # Создаем уведомления
                     users = User.query.filter_by(notify=True).all()
                     for user in users:
                         user_prod = get_user_product(user.id, prod)
@@ -246,7 +241,6 @@ def update_kaspersky_versions():
                             notification = Notification(user_id=user.id, message=message)
                             db.session.add(notification)
 
-                # Обновляем latest_version
                 if not prod.latest_version or prod.latest_version < latest_version:
                     prod.latest_version = latest_version
 
@@ -317,4 +311,4 @@ def profile():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')

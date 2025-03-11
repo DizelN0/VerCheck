@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Профиль{% endblock %}
+{% block content %}
+<h2>Профиль</h2>
+<form method="POST">
+    <div class="form-group">
+        <label>ФИО</label>
+        <input type="text" name="full_name" class="form-control" value="{{ user.full_name }}">
+    </div>
+    <div class="form-group">
+        <label>Профессия</label>
+        <input type="text" name="profession" class="form-control" value="{{ user.profession }}">
+    </div>
+    <div class="form-group form-check">
+        <input type="checkbox" class="form-check-input" name="notify" id="notify" {% if user.notify %} checked {% endif %}>
+        <label class="form-check-label" for="notify">Получать уведомления</label>
+    </div>
+    <button class="btn btn-primary" type="submit">Сохранить настройки</button>
+</form>
+{% endblock %}
