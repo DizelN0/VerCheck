@@ -5,3 +5,15 @@ body {
 .navbar {
     /* Шапка оформлена в синем цвете за счёт класса bg-primary Bootstrap */
 }
+
+.version-label {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    font-size: 14px;
+    color: gray;
+    background: rgba(255, 255, 255, 0.7); /* Немного прозрачности */
+    padding: 5px 10px;
+    border-radius: 5px;
+    user-select: none;
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Экспорт аудита</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            margin: 20px;
+        }
+        h1, h2 {
+            margin-top: 20px;
+        }
+        table {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Версии устройств</h1>
+    {% for vendor, items in grouped.items() %}
+        <h2>{{ vendor }}</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Устройство</th>
+                    <th>Ваша версия</th>
+                    <th>Актуальная версия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr {% if item.can_update %} class="table-warning" {% endif %}>
+                    <td>{{ item.product_name }}</td>
+                    <td>{{ item.user_version }}</td>
+                    <td>{{ item.latest_version }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endfor %}
+</div>
+</body>
+</html>

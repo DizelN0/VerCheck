@@ -2,7 +2,7 @@
 {% block title %}Дашборд{% endblock %}
 {% block content %}
 <h2>Дашборд</h2>
-<a href="{{ url_for('update_kaspersky_versions') }}" class="btn btn-warning mb-3">Обновить таблицу Kaspersky</a>
+<a href="{{ url_for('update.update_all_versions') }}" class="btn btn-warning mb-3">Обновить все версии</a>
 {% for vendor, products in grouped_products.items() %}
     <h3>{{ vendor }}</h3>
     <table class="table table-bordered">
@@ -22,7 +22,7 @@
                 <td {% if prod.latest_version != prod.accepted_version %} class="bg-warning" {% endif %}>{{ prod.latest_version }}</td>
                 <td>
                     {% if prod.latest_version != prod.accepted_version %}
-                    <form action="{{ url_for('apply_change', product_id=prod.id) }}" method="post">
+                    <form action="{{ url_for('dashboard.apply_change', product_id=prod.id) }}" method="post">
                         <button class="btn btn-success btn-sm" type="submit">Применить изменения</button>
                     </form>
                     {% else %}
@@ -34,7 +34,7 @@
         </tbody>
     </table>
 {% endfor %}
-<form action="{{ url_for('mark_notifications_read') }}" method="post">
+<form action="{{ url_for('dashboard.mark_notifications_read') }}" method="post">
     <button class="btn btn-secondary" type="submit">Отметить уведомления как прочитанные</button>
 </form>
 {% endblock %}

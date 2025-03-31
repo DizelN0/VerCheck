@@ -10,7 +10,7 @@
 </head>
 <body>
     <header class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+        <a class="navbar-brand" href="{{ url_for('dashboard.dashboard') }}">
             <img src="{{ url_for('static', filename='images/cn-w.png') }}" alt="Logo" style="height:30px;">
             VerCheck
         </a>
@@ -32,15 +32,18 @@
                 </div>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('profile') }}">Профиль</a>
+                <a class="nav-link" href="{{ url_for('audit.audit') }}">Аудит</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('profile.profile') }}">Профиль</a>
             </li>
             {% if current_user.role == 'admin' %}
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('settings') }}">Настройки</a>
+                <a class="nav-link" href="{{ url_for('settings.settings') }}">Настройки</a>
             </li>
             {% endif %}
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('logout') }}">Выход</a>
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">Выход</a>
             </li>
         </ul>
         {% endif %}
@@ -63,5 +66,6 @@
     <!-- Font Awesome -->
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     {% block scripts %}{% endblock %}
+<label class="version-label">Version 1.6.1</label>
 </body>
 </html>
